@@ -1,5 +1,6 @@
 import 'package:ble_blle/widgest/device.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:provider/provider.dart';
 
 import 'package:ble_blle/my_app_state.dart';
@@ -14,50 +15,65 @@ class ScannerPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    var theme = Theme.of(context);
+    var style = theme.textTheme.bodyLarge!.copyWith(color: theme.colorScheme.onPrimaryContainer);
     // if (await FlutterBluePlus.isSupported == false) {
     //     print("Bluetooth not supported by this device");
     //     return;
     // }
 
     if (!btOn) {
-      return Center(child: Text('Please turn on BT.'));
+      return Center(child: Text('Please turn on BT.', style: style));
     }
-    var theme = Theme.of(context);
-    var style = theme.textTheme.bodyLarge!.copyWith(color: theme.colorScheme.onPrimaryContainer);
+
     var appState = context.watch<MyAppState>();
-    var devices = appState.foundDevices;
+    var scanResults = appState.scanResults;
     var isScanning = appState.isScanning;
 
     return Column(
       children: [
-        Row(
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(left: 16),
-              child: ElevatedButton(
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ElevatedButton(
                 child: Text(isScanning ? 'Stop scan' : 'Start scan', style: style),
                 onPressed: () {
                   appState.toggleScan();
                 },
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(left: 16),
-              child: Text('Found ${appState.foundDevices.length} devices:', style: style),
-            ),
-          ],
+              Text('Found ${appState.scanResults.length} devices:', style: style),
+            ],
+          ),
         ),
-        SingleChildScrollView(
-          child: Column(
-            children: devices
-                .map((device) => Device(
-                      name: device.advName,
-                      mac: device.remoteId.str,
-                    ))
-                .toList(),
+        Expanded(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                children: scanResults
+                    .map((result) => Device(
+                          name: result.device.advName,
+                          mac: result.device.remoteId.str,
+                          rssi: result.rssi,
+                          onTap: () {
+                            _handleDeviceTap(appState, result);
+                          },
+                        ))
+                    .toList(),
+              ),
+            ),
           ),
         ),
       ],
     );
+  }
+
+  void _handleDeviceTap(MyAppState appState, ScanResult result) {
+    if (appState.isConnecting) {
+      return;
+    }
+    appState.connect(result.device);
   }
 }

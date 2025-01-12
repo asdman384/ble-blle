@@ -91,9 +91,12 @@ class _AppContainerState extends State<AppContainer> {
 
     var navigationContainer = BottomNavigationBar(
       items: [
-        BottomNavigationBarItem(label: 'Home', icon: Icon(Icons.home)),
-        BottomNavigationBarItem(label: 'Favorites', icon: Icon(Icons.favorite)),
-        BottomNavigationBarItem(label: '', icon: btIcon)
+        BottomNavigationBarItem(label: 'Scanner', icon: Icon(Icons.radar)),
+        BottomNavigationBarItem(label: 'Controller', icon: Icon(Icons.control_camera)),
+        BottomNavigationBarItem(
+          label: _adapterState == BluetoothAdapterState.on ? 'Enabled' : 'Turn on',
+          icon: btIcon,
+        )
       ],
       currentIndex: selectedTabIndex,
       onTap: _onTabTapped,
