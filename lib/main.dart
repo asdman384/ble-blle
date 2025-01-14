@@ -7,7 +7,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 import 'package:ble_blle/my_app_state.dart';
-import 'package:ble_blle/pages/favorites_page.dart';
+import 'package:ble_blle/pages/controller_page.dart';
 import 'package:ble_blle/pages/scanner_page.dart';
 
 void main() {
@@ -70,12 +70,12 @@ class _AppContainerState extends State<AppContainer> {
 
   @override
   Widget build(BuildContext context) {
-    print('AppContainer build, _adapterState:$_adapterState');
+    print('-----------------AppContainer build, _adapterState:$_adapterState');
 
     Widget page = selectedTabIndex == 0
         ? ScannerPage(btOn: _adapterState == BluetoothAdapterState.on)
         : selectedTabIndex == 1
-            ? FavoritesPage()
+            ? ControlllerPage()
             : Placeholder();
 
     Expanded pagesContainer = Expanded(
@@ -109,6 +109,11 @@ class _AppContainerState extends State<AppContainer> {
 
   void _onTabTapped(int tabIndex) {
     // Bluetooth tab
+    if (tabIndex == 2) {
+      turnOnBluetooth();
+      return;
+    }
+
     if (tabIndex == 2) {
       turnOnBluetooth();
       return;

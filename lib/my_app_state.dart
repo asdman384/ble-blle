@@ -9,6 +9,8 @@ class MyAppState extends ChangeNotifier {
   late StreamSubscription<bool> _isScanningSubscription;
 
   Map<String, BluetoothDevice> connectedDevices = <String, BluetoothDevice>{};
+  Map<String, Map<String, BluetoothCharacteristic>> characteristicsMap =
+      <String, Map<String, BluetoothCharacteristic>>{};
   Set<ScanResult> scanResults = <ScanResult>{};
   bool isScanning = false;
   bool isConnecting = false;
@@ -51,9 +53,13 @@ class MyAppState extends ChangeNotifier {
     }
   }
 
-  void connect(BluetoothDevice device) async {
+  void stopScan() {
+    FlutterBluePlus.stopScan();
+  }
+
+  Future<void> connect(BluetoothDevice device) async {
     if (connectedDevices.containsKey(device.remoteId.str)) {
-      print('device ${device.remoteId.str} is connected already');
+      print('-----------------device ${device.remoteId.str} is connected already');
       return;
     }
 
@@ -61,22 +67,19 @@ class MyAppState extends ChangeNotifier {
     notifyListeners();
 
     var subscription = device.connectionState.listen((BluetoothConnectionState state) async {
-      print(state);
+      print('-----------------connection state: $state');
 
       if (state == BluetoothConnectionState.connected) {
-        // 1. you must always re-discover services after connection
-        await device.discoverServices();
         connectedDevices[device.remoteId.str] = device;
+        characteristicsMap[device.remoteId.str] = await _discoverDevice(device);
         isConnecting = false;
         notifyListeners();
       }
 
       if (state == BluetoothConnectionState.disconnected) {
         connectedDevices.remove(device.remoteId.str);
+        characteristicsMap.remove(device.remoteId.str);
         notifyListeners();
-        // 1. typically, start a periodic timer that tries to
-        //    reconnect, or just call connect() again right now
-        // 2. you must always re-discover services after disconnection!
         print("disconnected ${device.disconnectReason?.code} ${device.disconnectReason?.description}");
       }
     });
@@ -94,8 +97,41 @@ class MyAppState extends ChangeNotifier {
     await device.connect();
   }
 
+  /// Disconnect from device
   void disconnect(BluetoothDevice device) async {
-    // Disconnect from device
     await device.disconnect();
+    connectedDevices.remove(device.remoteId.str);
+    characteristicsMap.remove(device.remoteId.str);
+    notifyListeners();
+  }
+
+  Iterable<String> getCharacteristicsUuids(String remoteId) {
+    return characteristicsMap.containsKey(remoteId) ? characteristicsMap[remoteId]!.keys : [];
+  }
+
+  /// Write to a characteristic
+  /// - [remoteId]: the remoteId of the device
+  /// - [characteristic]: the UUID of the characteristic
+  /// - [value]: a list of bytes
+  void write(String remoteId, String characteristic, List<int> value) {
+    var c = characteristicsMap[remoteId]![characteristic]!;
+    print(
+        '-----------------write to $remoteId, $characteristic, $value, writeWithoutResponse: ${c.properties.writeWithoutResponse}');
+    c.write(value, withoutResponse: c.properties.writeWithoutResponse);
+  }
+
+  _discoverDevice(BluetoothDevice device) async {
+    await device.discoverServices();
+    var characteristicsMap = <String, BluetoothCharacteristic>{};
+
+    for (var service in device.servicesList) {
+      for (BluetoothCharacteristic c in service.characteristics) {
+        if (c.properties.write || c.properties.writeWithoutResponse) {
+          characteristicsMap[c.uuid.str] = c;
+        }
+      }
+    }
+
+    return characteristicsMap;
   }
 }

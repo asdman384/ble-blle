@@ -15,6 +15,7 @@ class ScannerPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    var appState = context.watch<MyAppState>();
     var theme = Theme.of(context);
     var style = theme.textTheme.bodyLarge!.copyWith(color: theme.colorScheme.onPrimaryContainer);
     // if (await FlutterBluePlus.isSupported == false) {
@@ -23,10 +24,10 @@ class ScannerPage extends StatelessWidget {
     // }
 
     if (!btOn) {
+      appState.scanResults.clear();
       return Center(child: Text('Please turn on BT.', style: style));
     }
 
-    var appState = context.watch<MyAppState>();
     var scanResults = appState.scanResults;
     var isScanning = appState.isScanning;
 
@@ -41,6 +42,12 @@ class ScannerPage extends StatelessWidget {
                 child: Text(isScanning ? 'Stop scan' : 'Start scan', style: style),
                 onPressed: () {
                   appState.toggleScan();
+                },
+              ),
+              ElevatedButton(
+                child: Text('test'),
+                onPressed: () {
+                  print(0x01);
                 },
               ),
               Text('Found ${appState.scanResults.length} devices:', style: style),
@@ -74,6 +81,7 @@ class ScannerPage extends StatelessWidget {
     if (appState.isConnecting) {
       return;
     }
+    appState.stopScan();
     appState.connect(result.device);
   }
 }
